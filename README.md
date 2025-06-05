@@ -29,14 +29,21 @@ An intelligent, full-stack algorithmic trading platform that combines financial 
 | Step  | Task                                                                                      | API or DIY                                          |
 | ----- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | 1️⃣   | **Fetch price data** (daily OHLCV, indicators)                                            | ✅ **Alpha Vantage API**                             |
-| 2️⃣   | **Store raw price data** in MongoDB                                                       | 🧠 You write this script                            |
+| 2️⃣   | **Store raw price data** in MongoDB                                                       | 🧠 Custom script                            |
 | 3️⃣   | **Fetch sentiment data** (Reddit + News)                                                  | ✅ **Tradestie API** + ✅ **Finnhub API**             |
-| 4️⃣   | **Store sentiment data** in MongoDB                                                       | 🧠 You write schema + script                        |
-| 5️⃣   | **Engineer features** (returns, volatility, score weights, etc.)                          | 🧠 You write this logic                             |
+| 4️⃣   | **Store sentiment data** in MongoDB                                                       | 🧠 Custom schema + script                        |
+| 5️⃣   | **Engineer features** (returns, volatility, score weights, etc.)                          | 🧠 Custom logic                             |
 | 5️⃣.5️⃣ | **Train regression model** to **predict expected returns** | 🧠 You write this using `scikit-learn` or `xgboost` |
 | 6️⃣   | **Send predicted returns + cov matrix to Portfolio Optimizer**                            | ✅ **Portfolio Optimizer API**                       |
-| 7️⃣   | **Generate portfolio allocation and signals** based on output                             | 🧠 You write this rule logic                        |
+| 7️⃣   | **Generate portfolio allocation and signals** based on output                             | 🧠 Custom rule logic                        |
 | 8️⃣   | **Simulate/backtest** over past data                                                      | ✅ Use **Backtrader**, or build minimal custom logic |
 | 9️⃣   | **Store strategy performance** (returns, drawdown, Sharpe, trades)                        | 🧠 Store in MongoDB (`backtests` collection)        |
 | 🔟    | **Visualize results** (charts, dashboards)                                                | ✅ Use **Streamlit** or **Plotly/Matplotlib**        |
 
+---
+
+## How can this project grow (Future planes)?
+
+- User authentication and authorization for multi user access
+- Integration with other data sources (e.g., Twitter, news APIs)
+- Upgrading to a heavier model such as XGBoost
