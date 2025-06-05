@@ -144,6 +144,7 @@ pip-wheel-metadata/
 *.pkl
 *.joblib
 *.ipynb_checkpoints
+server/venv/
 
 # Jupyter Notebook
 .ipynb_checkpoints/
