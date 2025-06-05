@@ -6,9 +6,9 @@ An intelligent, full-stack algorithmic trading platform that combines financial 
 
 ## 🚀 Features
 
-- 📈 Fetches real-time market data via **Alpha Vantage API**
-- 📣 Integrates social and news sentiment via **Tradestie (Reddit)** and **Finnhub**
-- 🧠 Predicts expected returns using **regression models (Logistic/XGBoost)**
+- 📈 Fetches real-time market data via **Finnhub**
+- 📣 Integrates social and news sentiment **Finnhub**
+- 🧠 Predicts expected returns using **regression models (Logistic Regression)**
 - ⚖️ Optimizes portfolio weights using the **Portfolio Optimizer API**
 - 📉 Simulates and backtests strategies with performance metrics
 - 📊 Visualizes returns, allocations, and sentiment via **Streamlit** or **Plotly**
@@ -26,19 +26,20 @@ An intelligent, full-stack algorithmic trading platform that combines financial 
 
 ---
 
-| Step  | Task                                                                                      | API or DIY                                          |
-| ----- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| 1️⃣   | **Fetch price data** (daily OHLCV, indicators)                                            | ✅ **Alpha Vantage API**                             |
-| 2️⃣   | **Store raw price data** in MongoDB                                                       | 🧠 Custom script                            |
-| 3️⃣   | **Fetch sentiment data** (Reddit + News)                                                  | ✅ **Tradestie API** + ✅ **Finnhub API**             |
-| 4️⃣   | **Store sentiment data** in MongoDB                                                       | 🧠 Custom schema + script                        |
-| 5️⃣   | **Engineer features** (returns, volatility, score weights, etc.)                          | 🧠 Custom logic                             |
-| 5️⃣.5️⃣ | **Train regression model** to **predict expected returns** | 🧠 You write this using `scikit-learn` or `xgboost` |
-| 6️⃣   | **Send predicted returns + cov matrix to Portfolio Optimizer**                            | ✅ **Portfolio Optimizer API**                       |
-| 7️⃣   | **Generate portfolio allocation and signals** based on output                             | 🧠 Custom rule logic                        |
-| 8️⃣   | **Simulate/backtest** over past data                                                      | ✅ Use **Backtrader**, or build minimal custom logic |
-| 9️⃣   | **Store strategy performance** (returns, drawdown, Sharpe, trades)                        | 🧠 Store in MongoDB (`backtests` collection)        |
-| 🔟    | **Visualize results** (charts, dashboards)                                                | ✅ Use **Streamlit** or **Plotly/Matplotlib**        |
+| Step   | Task                                                          | API or DIY                                              |
+| ------ | ------------------------------------------------------------- | ------------------------------------------------------- |
+| 1️⃣    | **Fetch price data** (daily OHLCV, intraday optional)         | ✅ **Finnhub API**                                       |
+| 2️⃣    | **Fetch sentiment data** (news + Reddit/Stocktwits)           | ✅ **Finnhub API**                                       |
+| 3️⃣    | **Store raw data** in MongoDB (prices, sentiment)             | 🧠 You write this script                                |
+| 4️⃣    | **Engineer features** (returns, volatility, sentiment trends) | 🧠 You write this logic                                 |
+| 5️⃣    | **Train regression model** to predict expected returns        | 🧠 You build this (start with `LinearRegression`)       |
+| 6️⃣    | **Predict expected returns** for current market state         | 🧠 Model inference on latest feature batch              |
+| 7️⃣    | **Send returns + covariance to Portfolio Optimizer**          | ✅ **Portfolio Optimizer API**                           |
+| 8️⃣    | **Receive optimized weights** (asset allocation)              | ✅ JSON output (weights for each asset)                  |
+| 9️⃣    | **Compare to current portfolio & generate signals**           | 🧠 You write logic for buy/sell/hold + deltas           |
+| 🔟     | **Simulate/backtest portfolio performance**                   | 🧠 Use `Backtrader` or custom logic                     |
+| 1️⃣1️⃣ | **Store user-specific signals, weights, and performance**     | 🧠 MongoDB (multi-user-aware schema)                    |
+| 1️⃣2️⃣ | **Visualize results** (performance, allocation, sentiment)    | ✅ Use **Streamlit**, **Plotly**, or **React dashboard** |
 
 ---
 
