@@ -128,3 +128,33 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+pip-wheel-metadata/
+*.pkl
+*.joblib
+*.ipynb_checkpoints
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Pytest
+.cache/
+.pytest_cache/
+
+# VSCode Python extension
+.vscode/
+
+# Virtual environment files
+.env
+.env.*
