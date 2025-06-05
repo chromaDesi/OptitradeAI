@@ -33,7 +33,7 @@ An intelligent, full-stack algorithmic trading platform that combines financial 
 | 3️⃣   | **Fetch sentiment data** (Reddit + News)                                                  | ✅ **Tradestie API** + ✅ **Finnhub API**             |
 | 4️⃣   | **Store sentiment data** in MongoDB                                                       | 🧠 You write schema + script                        |
 | 5️⃣   | **Engineer features** (returns, volatility, score weights, etc.)                          | 🧠 You write this logic                             |
-| 5.5️⃣ | **Train regression model** (e.g., Linear, Ridge, XGBoost) to **predict expected returns** | 🧠 You write this using `scikit-learn` or `xgboost` |
+| 5️⃣.5️⃣ | **Train regression model** (e.g., Linear, Ridge, XGBoost) to **predict expected returns** | 🧠 You write this using `scikit-learn` or `xgboost` |
 | 6️⃣   | **Send predicted returns + cov matrix to Portfolio Optimizer**                            | ✅ **Portfolio Optimizer API**                       |
 | 7️⃣   | **Generate portfolio allocation and signals** based on output                             | 🧠 You write this rule logic                        |
 | 8️⃣   | **Simulate/backtest** over past data                                                      | ✅ Use **Backtrader**, or build minimal custom logic |
