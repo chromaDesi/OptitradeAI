@@ -1,6 +1,6 @@
 # 📊 Smart Portfolio Trader
 
-An intelligent, full-stack algorithmic trading platform that combines financial data, social sentiment, and portfolio optimization to generate actionable trading signals. Built with React, Python, and MongoDB, this project is designed to support multiple users, predictive modeling, and long-term portfolio performance tracking.
+An intelligent, full-stack algorithmic trading platform that combines financial data, social sentiment, and portfolio optimization to generate actionable trading signals. Built with React, Python, and MongoDB, this project is designed to support multiple users, predictive modeling, and long-term portfolio performance tracking. Currently built for a solo invester, with hopes to scale into a multi-user software.
 
 ---
 
@@ -47,3 +47,7 @@ An intelligent, full-stack algorithmic trading platform that combines financial 
 - User authentication and authorization for multi user access
 - Integration with other data sources (e.g., Twitter, news APIs)
 - Upgrading to a heavier model such as XGBoost
+- Let users choose their tickers and risk levels
+- Add live trading via Alpaca API
+- Implement daily auto-update scheduler
+- Deploy to cloud with CI/CD
