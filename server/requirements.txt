@@ -7,3 +7,8 @@ scikit-learn
 joblib
 python-dotenv
 seaborn
+backtrader
+finnhub-python
+yfinance
+nltk
+pymongo[srv]==3.12
