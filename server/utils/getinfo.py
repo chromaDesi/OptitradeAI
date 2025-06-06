@@ -51,13 +51,14 @@ def main(args) -> int:
     elif len(args) == 3:
         ticker = args[0]
         start = datetime.strptime(args[1], '%Y-%m-%d')
+        end = datetime.strptime(args[2], '%Y-%m-%d')
     else:
         print("args needed: symbol_name , start_date, end_date")
-        end = datetime.strptime(args[2], '%Y-%m-%d')
     data = get_stock_data(ticker, start, end)
     print(f"Month : {start} to {end} for {ticker}")
     print(tabulate(data, headers='keys', tablefmt='psql'))
-    #plot_stock_data(data, ticker, start, end)
+    if input("Wpuld you like to plot data (Y/N): ") == "Y":
+        plot_stock_data(data, ticker, start, end)
     return 0
     
 
