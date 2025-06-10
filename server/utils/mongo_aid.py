@@ -7,20 +7,20 @@ from datetime import datetime, timedelta
 import pandas as pd
 from tabulate import tabulate
 
-#used to establish connection with MongoDB
+#used to retrieve a key located in .env
+def get_key(keyname: str) -> (str | None):
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    load_dotenv(dotenv_path=env_path)
+    return os.getenv(keyname)
+    
+#used to establish connection with MongoDB   
 def setup(collection_name: str):
-    # Load .env
-        env_path = Path(__file__).resolve().parents[2] / ".env"
-        load_dotenv(dotenv_path=env_path)
-
-        # MongoDB setup
-        dbclient = MongoClient(os.getenv("MONGO_URL"))
+        dbclient = MongoClient(get_key("MONGO_URL"))
         db = dbclient["OptitradeAI"]
         collection = db[collection_name]
         return collection
 
-
-
+#add stock data to MongoDB
 def add_stock_data_to_db() -> int:
     try:
         #load collection
@@ -43,6 +43,7 @@ def add_stock_data_to_db() -> int:
         print(f"Error: {e}")
         return 1
 
+#Retrieve documents from collections located in the database
 def retrieve_stock_data_from_db(ticker: str, start_date: str, end_date:str) -> pd.DataFrame:
     try:
         #load collection
@@ -69,9 +70,16 @@ def main():
             case 1:
                 add_stock_data_to_db()
             case 2:
-                ticker = input("Enter your desired stock symbol: ")
-                start_date = input("Enter the start date (YYYY-MM-DD): ")
-                end_date = input("Enter the end date (YYYY-MM-DD): ")
+                ticker = input("Enter your desired stock symbol: ").strip()
+                start_date = input("Enter the start date (YYYY-MM-DD): ").strip()
+                end_date = input("Enter the end date (YYYY-MM-DD): ").strip()
+                print(f"DEBUG: Ticker: '{ticker}' (length: {len(ticker)})")
+                print(f"DEBUG: Start Date: '{start_date}' (length: {len(start_date)})")
+                print(f"DEBUG: End Date: '{end_date}' (length: {len(end_date)})")
+                # If you want to see if non-printable characters are present:
+                print(f"DEBUG: Ticker hex: '{ticker.encode('utf-8').hex()}'")
+                print(f"DEBUG: Start Date hex: '{start_date.encode('utf-8').hex()}'")
+                print(f"DEBUG: End Date hex: '{end_date.encode('utf-8').hex()}'")
                 retrieve_stock_data_from_db(ticker, start_date, end_date)
             case 3:
                 return

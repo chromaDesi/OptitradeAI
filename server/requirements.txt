@@ -13,3 +13,4 @@ yfinance
 nltk
 pymongo[srv]==3.12
 tabulate
+transformers

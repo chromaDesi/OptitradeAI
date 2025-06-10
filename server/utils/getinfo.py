@@ -16,8 +16,10 @@ def get_stock_data(ticker: str, start: str, end: str) -> pd.DataFrame:
     data.reset_index(inplace=True)
     data["SMA_10"] = data["Close"].rolling(window=10).mean()
     data["SMA_20"] = data["Close"].rolling(window=20).mean()
+    data["SMA_50"] = data["Close"].rolling(window=50).mean()
     data["EMA_10"] = data["Close"].ewm(span=10, adjust=False).mean()
     data["EMA_20"] = data["Close"].ewm(span=20, adjust=False).mean()
+    data["EMA_50"] = data["Close"].ewm(span=50, adjust=False).mean()
     data.insert(0, "Symbol", ticker)
     return data
 
