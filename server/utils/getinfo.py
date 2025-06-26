@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 import pandas as pd  # Needed now since we reference pd.MultiIndex
 from tabulate import tabulate
 
+
+def daterange(start_date, end_date):
+    for n in range((end_date - start_date).days + 1):
+        yield start_date + timedelta(n)
+
 #the main getter function for OLCHV, SMA, and EMA Data
 def get_stock_data(ticker: str, start: str, end: str) -> pd.DataFrame:
     t = yfinance.Ticker(ticker=ticker)
@@ -14,6 +19,7 @@ def get_stock_data(ticker: str, start: str, end: str) -> pd.DataFrame:
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)  # Keep just 'Close', 'Open', etc.
     data.reset_index(inplace=True)
+    data['Date'] = data['Date'].dt.tz_localize(None)
     data["SMA_10"] = data["Close"].rolling(window=10).mean()
     data["SMA_20"] = data["Close"].rolling(window=20).mean()
     data["SMA_50"] = data["Close"].rolling(window=50).mean()

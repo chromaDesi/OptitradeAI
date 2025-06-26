@@ -21,14 +21,11 @@ def setup(collection_name: str):
         return collection
 
 #add stock data to MongoDB
-def add_stock_data_to_db() -> int:
+def add_stock_data_to_db(ticker:str, start:str = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d'), end: str = datetime.today().strftime('%Y-%m-%d')) -> int:
     try:
         #load collection
-        collection = setup("stock__prices")
+        collection = setup("stock_prices")
         # Get data
-        end = datetime.today().strftime('%Y-%m-%d')
-        start = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
-        ticker = input("Enter your desired stock symbol: ")
         df = get_stock_data(ticker, start, end)
 
         for _, row in df.iterrows():
@@ -53,8 +50,9 @@ def retrieve_stock_data_from_db(ticker: str, start_date: str, end_date:str) -> p
         docs = list(collection.find({"Symbol": ticker, "Date": {"$gte": start_dt, "$lte": end_dt}}))
         df = pd.DataFrame(docs)
         if df.empty:
-            print("No data found for the given ticker and date range.")
-            return df
+            print("Data not in database, importing right now:")
+            add_stock_data_to_db(ticker, start_date, end_date)
+            return retrieve_stock_data_from_db(ticker, start_date, end_date)
         if "_id" in df.columns:
             df.drop(columns=["_id"], inplace=True)
         print(tabulate(df, headers='keys', tablefmt='psql'))
@@ -68,18 +66,11 @@ def main():
         choice = int(input("Menu:\n1. Add data\n2. Retrieve data\n3. Exit\nChoose: "))
         match choice:
             case 1:
-                add_stock_data_to_db()
+                add_stock_data_to_db(input("Enter your desired stock symbol: ").strip())
             case 2:
                 ticker = input("Enter your desired stock symbol: ").strip()
                 start_date = input("Enter the start date (YYYY-MM-DD): ").strip()
                 end_date = input("Enter the end date (YYYY-MM-DD): ").strip()
-                print(f"DEBUG: Ticker: '{ticker}' (length: {len(ticker)})")
-                print(f"DEBUG: Start Date: '{start_date}' (length: {len(start_date)})")
-                print(f"DEBUG: End Date: '{end_date}' (length: {len(end_date)})")
-                # If you want to see if non-printable characters are present:
-                print(f"DEBUG: Ticker hex: '{ticker.encode('utf-8').hex()}'")
-                print(f"DEBUG: Start Date hex: '{start_date.encode('utf-8').hex()}'")
-                print(f"DEBUG: End Date hex: '{end_date.encode('utf-8').hex()}'")
                 retrieve_stock_data_from_db(ticker, start_date, end_date)
             case 3:
                 return

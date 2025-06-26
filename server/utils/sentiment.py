@@ -8,81 +8,226 @@ from tabulate import tabulate
 from mongo_aid import get_key
 from transformers import pipeline
 import requests
+from bs4 import BeautifulSoup
 
-'''
-This file will contain all methods required to retrieve sentiment.
-Both insider sentiment (MSPR) and News/Social sentiment will be extracted to be used in the model.
-'''
 
-def daterange(start_date: date, end_date: date):
-    days = int((end_date - start_date).days)
-    for n in range(days):
+def daterange(start_date, end_date):
+    for n in range((end_date - start_date).days + 1):
         yield start_date + timedelta(n)
-        
 
-def get_sentiment_news(ticker) -> str:
-    # Initialize an empty list to collect scores (more efficient than np.append in loop)
-    scores_list = []
-    APIKEY = get_key("VITE_NEWS_API")
-    
-    # Initialize the sentiment analysis pipeline once
+def get_sentiment_news_daily_batched_finn(symbol: str, days: int = 30) -> pd.DataFrame:
+    finnhub_client = finnhub_client = finnhub.Client(api_key=get_key("VITE_FINNHUB"))
     pipe = pipeline("text-classification", model="ProsusAI/finbert")
-    
-    keyword = ticker
-    
-    # Iterate over the last year up until yesterday
-    start_date = date.today() - timedelta(days=365)
-    end_date = date.today() # Loop up to, but not including, today
+
+    start_date = date.today() - timedelta(days=days)
+    end_date = date.today()
+
+    results = {
+        "date": [],
+        "mean_sentiment": [],
+        "std_sentiment": [],
+        "article_count": []
+    }
 
     for single_date in daterange(start_date, end_date):
-        newsurl = (
+        date_str = single_date.strftime('%Y-%m-%d')
+        print(f"Fetching news for {symbol} on {date_str}")
+
+        try:
+            articles = finnhub_client.company_news(symbol, _from=date_str, to=date_str)
+        except Exception as e:
+            print(f"Error fetching articles for {date_str}: {e}")
+            articles = []
+
+        # Extract headline + summary
+        texts = []
+        for article in articles:
+            headline = article.get("headline", "")
+            summary = article.get("summary", "")
+            if headline or summary:
+                full_text = f"{headline} {summary}".strip()
+                texts.append(full_text)
+
+        if texts:
+            try:
+                outputs = pipe(texts, truncation=True)
+                scores = []
+
+                for i, (text, output) in enumerate(zip(texts, outputs)):
+                    score = (
+                        output["score"] if output["label"] == "positive"
+                        else -output["score"] if output["label"] == "negative"
+                        else 0
+                    )
+                    scores.append(score)
+
+                    if i == 0:
+                        print(f"\n📰 {date_str} Sample Article:")
+                        print(f"Headline + Summary: {text[:300]}...")
+                        print(f"Predicted Sentiment: {output['label']} ({score:.3f})\n")
+
+                results["date"].append(single_date)
+                results["mean_sentiment"].append(np.mean(scores))
+                results["std_sentiment"].append(np.std(scores))
+                results["article_count"].append(len(scores))
+
+            except Exception as e:
+                print(f"Sentiment error on {date_str}: {e}")
+                results["date"].append(single_date)
+                results["mean_sentiment"].append(np.nan)
+                results["std_sentiment"].append(np.nan)
+                results["article_count"].append(0)
+
+        else:
+            results["date"].append(single_date)
+            results["mean_sentiment"].append(np.nan)
+            results["std_sentiment"].append(np.nan)
+            results["article_count"].append(0)
+
+    df = pd.DataFrame(results)
+    df.sort_values("date", inplace=True)
+    return df
+
+def get_sentiment_news_daily_batched_na(symbol: str, days: int = 30) -> pd.DataFrame:
+    APIKEY = get_key("VITE_NEWSAPI")
+    pipe = pipeline("text-classification", model="ProsusAI/finbert")
+
+    start_date = date.today() - timedelta(days=days)
+    end_date = date.today()
+
+    results = {
+        "date": [],
+        "mean_sentiment": [],
+        "std_sentiment": [],
+        "article_count": []
+    }
+
+    query = symbol  # Simple keyword search; you can make this smarter if needed
+
+    for single_date in daterange(start_date, end_date):
+        date_str = single_date.strftime('%Y-%m-%d')
+        print(f"Fetching news for {symbol} on {date_str}")
+
+        url = (
             'https://newsapi.org/v2/everything?'
-            f'q={keyword}&'
-            f'from={single_date.strftime('%Y-%m-%d')}&'
-            'sortBy=popularity&' # Note: popularity might not be ideal for comprehensive sentiment. Consider 'relevancy' or 'publishedAt'.
+            f'q={query}&'
+            f'from={date_str}&'
+            f'to={date_str}&'
+            'language=en&'  # ✅ English language filter
+            'sortBy=publishedAt&'
+            'pageSize=100&'
             f'apiKey={APIKEY}'
         )
-        
-        try:
-            response = requests.get(newsurl)
-            response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-            
-            articles = response.json()['articles']
-            
-            # Collects articles where keyword is found in either title or description
-            filtered_articles = [
-                article for article in articles 
-                if article.get('title') and keyword.lower() in article['title'].lower() or 
-                   article.get('description') and keyword.lower() in article['description'].lower()
-            ]
-            
-            # Sentiment analysis on each article
-            for article in filtered_articles:
-                if article.get('content'): # Ensure 'content' key exists and is not None
-                    sentiment = pipe(article['content'])[0]
-                    scores_list.append(sentiment['score'])
-                else:
-                    print(f"Warning: Article with no content for {single_date} - {article.get('title', 'N/A')}")
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching news for {single_date}: {e}")
-        except KeyError as e:
-            print(f"Error parsing JSON for {single_date} (missing key): {e}")
-        except IndexError: # Happens if pipe() returns an empty list, though unlikely for finbert
-            print(f"Warning: Could not get sentiment for an article on {single_date}")
 
-    if scores_list:
-        arr = np.array(scores_list) # Convert list to numpy array at the end
-        print(f'Overall yearly sentiment for {ticker} is {np.mean(arr)}')
-    else:
-        print(f'No sentiment data found for {ticker} in the last year.')
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            articles = response.json().get("articles", [])
+        except Exception as e:
+            print(f"Error fetching articles for {date_str}: {e}")
+            articles = []
+
+        # Build input text for sentiment model
+        texts = []
+        for article in articles:
+            parts = []
+            if article.get("title"):
+                parts.append(article["title"])
+            if article.get("description"):
+                parts.append(article["description"])
+            if article.get("content"):
+                parts.append(article["content"])
+            if parts:
+                full_text = " ".join(parts)
+                texts.append(full_text)
+
+        if texts:
+            try:
+                outputs = pipe(texts, truncation=True)
+                scores = []
+
+                for i, (text, output) in enumerate(zip(texts, outputs)):
+                    score = (
+                        output["score"] if output["label"] == "positive"
+                        else -output["score"] if output["label"] == "negative"
+                        else 0
+                    )
+                    scores.append(score)
+
+                    if i == 0:
+                        print(f"\n📰 {date_str} Sample Article:")
+                        print(f"Headline + Content: {text[:300]}...")
+                        print(f"Predicted Sentiment: {output['label']} ({score:.3f})\n")
+
+                results["date"].append(single_date)
+                results["mean_sentiment"].append(np.mean(scores))
+                results["std_sentiment"].append(np.std(scores))
+                results["article_count"].append(len(scores))
+
+            except Exception as e:
+                print(f"Sentiment error on {date_str}: {e}")
+                results["date"].append(single_date)
+                results["mean_sentiment"].append(np.nan)
+                results["std_sentiment"].append(np.nan)
+                results["article_count"].append(0)
+
+        else:
+            results["date"].append(single_date)
+            results["mean_sentiment"].append(np.nan)
+            results["std_sentiment"].append(np.nan)
+            results["article_count"].append(0)
+
+    df = pd.DataFrame(results)
+    df.sort_values("date", inplace=True)
+    return df
+
+
+
+def merge_daily_sentiment(finnhub_df: pd.DataFrame, newsapi_df: pd.DataFrame) -> pd.DataFrame:
+    merged = pd.merge(
+        finnhub_df,
+        newsapi_df,
+        on="date",
+        suffixes=("_finnhub", "_newsapi")
+    )
+
+    # Compute a simple average of the two sources
+    merged["mean_sentiment_avg"] = merged[
+        ["mean_sentiment_finnhub", "mean_sentiment_newsapi"]
+    ].mean(axis=1)
+
+    # Optionally: compute average article count and std if needed
+    merged["article_count_avg"] = merged[
+        ["article_count_finnhub", "article_count_newsapi"]
+    ].mean(axis=1)
+
+    merged["std_sentiment_avg"] = merged[
+        ["std_sentiment_finnhub", "std_sentiment_newsapi"]
+    ].mean(axis=1)
+    
+    #Take the sentiment disagreement to flag potential market indecision
+    merged["sentiment_disagreement"] = (
+    merged["mean_sentiment_finnhub"] - merged["mean_sentiment_newsapi"]).abs()
+    
+    merged["sentiment_disagreement_pct"] = (
+    merged["sentiment_disagreement"] / merged["std_sentiment_avg"]
+    )
+
+    return merged
 
 
 #for long term trading, I would want to use news api, and for swing trades, use social media api
 
 #This method will scrape data from websites and socials about a given stock
-def pull_text() -> np.ndarray:
-    # Pull text from a file
-    pass
+def pull_text(ticker: str) -> np.ndarray:
+    response = requests.get(f"https://tradestie.com/apps/twitter/most-active-stocks/", headers = {"User-Agent": "Mozilla/5.0"})
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        text = soup.get_text()
+        print(text)
+    else:
+        print(response.status_code)
+        
 
 
 
@@ -99,10 +244,34 @@ def insider_sentiment(ticker, start, end):
     print(tabulate(pd.DataFrame(data), headers='keys', tablefmt='psql'))
 
 
+def get_insider_sentiment_score(ticker, start, end):
+    client = finnhub.Client(api_key=get_key("VITE_FINNHUB"))
+    data = client.stock_insider_sentiment(ticker, start, end)
+    if not data:
+        return 0  # Neutral if no activity
+
+    df = pd.DataFrame(data)
+    buy_sum = df[df['change'] > 0]['change'].sum()
+    sell_sum = -df[df['change'] < 0]['change'].sum()
+    
+    if buy_sum + sell_sum == 0:
+        return 0  # Avoid div by zero
+    
+    score = (buy_sum - sell_sum) / (buy_sum + sell_sum)  # normalized to -1..1
+    return round(score, 3)
+
+
 def main():
-    end = datetime.today().strftime('%Y-%m-%d')
+    '''end = datetime.today().strftime('%Y-%m-%d')
     start = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
-    insider_sentiment("AAPL", start , end)
+    #insider_sentiment("AAPL", start , end)
+    df1 = get_sentiment_news_daily_batched_na("AMZN", days=10)
+    df2 = get_sentiment_news_daily_batched_finn("AMZN", days=10)
+    print(tabulate(df1, headers='keys', tablefmt='psql'))
+    print(tabulate(df2, headers='keys', tablefmt='psql'))
+    print(tabulate(merge_daily_sentiment(df2, df1), headers='keys', tablefmt='psql'))'''
+    pull_text("AMZN")
+    
     
 if __name__ == "__main__":
     main()
