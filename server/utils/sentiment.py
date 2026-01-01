@@ -1,5 +1,4 @@
 import pandas as pd
-from nltk import tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import numpy as np
 import finnhub
@@ -14,6 +13,63 @@ from bs4 import BeautifulSoup
 def daterange(start_date, end_date):
     for n in range((end_date - start_date).days + 1):
         yield start_date + timedelta(n)
+
+
+
+def get_sentiment_news_daily_batched_finn2(symbol: str, days: int = 30) -> pd.DataFrame:
+    finnhub_client = finnhub.Client(api_key=get_key("VITE_FINNHUB"))
+    
+    # Initialize VADER (The lightweight model)
+    analyzer = SentimentIntensityAnalyzer() 
+
+    start_date = date.today() - timedelta(days=days)
+    end_date = date.today()
+
+    results = {
+        "date": [],
+        "mean_sentiment": [],
+        "std_sentiment": [],
+        "article_count": []
+    }
+
+    for single_date in daterange(start_date, end_date):
+        date_str = single_date.strftime('%Y-%m-%d')
+        print(f"Fetching news for {symbol} on {date_str}")
+
+        try:
+            articles = finnhub_client.company_news(symbol, _from=date_str, to=date_str)
+        except Exception as e:
+            articles = []
+
+        scores = []
+        for article in articles:
+            headline = article.get("headline", "")
+            summary = article.get("summary", "")
+            full_text = f"{headline} {summary}".strip()
+            
+            if full_text:
+                # --- VADER LOGIC STARTS HERE ---
+                # vs['compound'] is a score from -1 (Most Negative) to +1 (Most Positive)
+                vs = analyzer.polarity_scores(full_text)
+                scores.append(vs['compound'])
+                # --- VADER LOGIC ENDS HERE ---
+
+        # (The rest of your aggregation logic remains the same...)
+        if scores:
+            results["date"].append(single_date)
+            results["mean_sentiment"].append(np.mean(scores))
+            results["std_sentiment"].append(np.std(scores))
+            results["article_count"].append(len(scores))
+        else:
+            results["date"].append(single_date)
+            results["mean_sentiment"].append(np.nan)
+            results["std_sentiment"].append(np.nan)
+            results["article_count"].append(0)
+
+    df = pd.DataFrame(results)
+    df.sort_values("date", inplace=True)
+    return df
+
 
 def get_sentiment_news_daily_batched_finn(symbol: str, days: int = 30) -> pd.DataFrame:
     finnhub_client = finnhub_client = finnhub.Client(api_key=get_key("VITE_FINNHUB"))
@@ -221,7 +277,7 @@ def merge_daily_sentiment(finnhub_df: pd.DataFrame, newsapi_df: pd.DataFrame) ->
 #This method will scrape data from websites and socials about a given stock
 def pull_text(ticker: str) -> np.ndarray:
     response = requests.get(f"https://tradestie.com/apps/twitter/most-active-stocks/", headers = {"User-Agent": "Mozilla/5.0"})
-    if response.status_code == 200:
+    if response.status_code <= 200 and response.status_code < 300:
         soup = BeautifulSoup(response.text, 'html.parser')
         text = soup.get_text()
         print(text)
@@ -262,15 +318,15 @@ def get_insider_sentiment_score(ticker, start, end):
 
 
 def main():
-    '''end = datetime.today().strftime('%Y-%m-%d')
+    end = datetime.today().strftime('%Y-%m-%d')
     start = (datetime.today() - timedelta(days=365)).strftime('%Y-%m-%d')
     #insider_sentiment("AAPL", start , end)
-    df1 = get_sentiment_news_daily_batched_na("AMZN", days=10)
-    df2 = get_sentiment_news_daily_batched_finn("AMZN", days=10)
+    df1 = get_sentiment_news_daily_batched_finn("AMZN", days=10)
+    df2 = get_sentiment_news_daily_batched_finn2("AMZN", days=10)
     print(tabulate(df1, headers='keys', tablefmt='psql'))
     print(tabulate(df2, headers='keys', tablefmt='psql'))
-    print(tabulate(merge_daily_sentiment(df2, df1), headers='keys', tablefmt='psql'))'''
-    pull_text("AMZN")
+    print(tabulate(merge_daily_sentiment(df2, df1), headers='keys', tablefmt='psql'))
+    #pull_text("AMZN")
     
     
 if __name__ == "__main__":
